@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TagSentry</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<style>
+:root{
+  --bg:#f3f5f8; --panel:#ffffff; --side:#eceff4; --ink:#15202b; --muted:#5d6b7a; --line:#dde2e8;
+  --accent:#0b5cad; --accent-bg:#e4effa;
+  --ok:#17794a; --ok-bg:#e1f3e9; --warn:#855400; --warn-bg:#fcedcb; --err:#b3261e; --err-bg:#fde5e2;
+  --mono:ui-monospace,Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font:14px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+button,input,select,textarea{font:inherit;color:inherit}
+.app{display:grid;grid-template-columns:176px minmax(0,1fr);min-height:100vh}
+.side{background:var(--side);border-right:1px solid var(--line);padding:14px 0;display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh}
+.brand{font-weight:600;font-size:15px;padding:2px 18px 16px;letter-spacing:.2px}
+.nav{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:10px;padding:10px 18px;color:var(--muted);border-left:3px solid transparent}
+.nav:hover{background:rgba(0,0,0,.04);color:var(--ink)}
+.nav.on{background:var(--accent-bg);color:var(--accent);border-left-color:var(--accent);font-weight:600}
+.nav:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.nav svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.main{min-width:0;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:10px;padding:10px 20px;background:#f8fafc;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.crumb{flex:1;color:var(--muted);min-width:120px}
+.crumb b{color:var(--ink);font-weight:600}
+#view{padding:18px 20px 40px;max-width:1280px;width:100%}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:2px 9px;border-radius:999px;background:#e9edf2;color:var(--muted);white-space:nowrap;border:0}
+.chip.ok{background:var(--ok-bg);color:var(--ok)} .chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.err{background:var(--err-bg);color:var(--err)} .chip.info{background:var(--accent-bg);color:var(--accent)}
+button.chip{cursor:pointer}
+.btn{border:1px solid #b9c2cd;background:var(--panel);border-radius:6px;padding:6px 14px;cursor:pointer;min-height:34px}
+.btn:hover{background:#f1f4f8} .btn:active{transform:scale(.98)}
+a.btn{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff} .btn.primary:hover{background:#0a4f95}
+.btn.danger{color:var(--err);border-color:#e3b3af}
+.btn.sm{min-height:28px;padding:3px 10px;font-size:13px}
+.icon{all:unset;cursor:pointer;padding:6px;border-radius:6px;display:inline-flex;color:var(--muted)}
+.icon:hover{background:rgba(0,0,0,.06);color:var(--ink)} .icon svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+input,select,textarea{border:1px solid #b9c2cd;border-radius:6px;padding:6px 10px;background:var(--panel);min-height:34px;max-width:100%}
+textarea{width:100%;resize:vertical}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.bar .grow{flex:1}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:14px;min-width:0}
+.card h3{margin:0 0 8px;font-size:13px;font-weight:600;color:var(--muted)}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+.metric{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.metric span{display:block;color:var(--muted);font-size:12px}
+.metric b{font-size:30px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-weight:600;font-size:12px;color:var(--muted);padding:7px 8px;border-bottom:1px solid #c9d1da;white-space:nowrap}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr.click{cursor:pointer} tr.click:hover td{background:#f5f8fb} tr.sel td{background:var(--accent-bg)}
+.mono{font-family:var(--mono);font-size:12.5px}
+.muted{color:var(--muted)}
+.empty{color:var(--muted);padding:14px 4px}
+.banner{border-radius:8px;padding:10px 14px;margin-bottom:14px;font-weight:600}
+.banner.err{background:var(--err-bg);color:var(--err)} .banner.warn{background:var(--warn-bg);color:var(--warn)}
+.gate{display:grid;grid-template-columns:200px minmax(0,1fr);gap:18px;align-items:start}
+.sumcol .big{font-size:52px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.prog{height:10px;background:#e3e8ee;border-radius:5px;overflow:hidden;margin:12px 0 4px}
+.prog i{display:block;height:100%;background:var(--ok);transition:width .3s}
+.scan{font-size:28px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1}
+.live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:4px}
+.tl{border-left:2px solid #c9d1da;margin:6px 0 0 6px;padding-left:16px}
+.tl>div{position:relative;padding-bottom:14px}
+.tl>div:before{content:"";position:absolute;left:-23px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid #fff}
+.tl>div.bad:before{background:var(--err)} .tl>div.home:before{background:var(--ok)}
+.overlay{position:fixed;inset:0;background:rgba(15,25,35,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.overlay[hidden]{display:none}
+.dlg{background:var(--panel);border-radius:10px;width:min(440px,100%);max-height:92vh;overflow:auto;padding:18px 20px}
+.dlg.wide{width:min(680px,100%)}
+.dlg h2{margin:0 0 12px;font-size:17px}
+table.mini{font-size:12px;margin-top:8px}
+table.mini th,table.mini td{padding:4px 6px;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.fld{display:block;margin-bottom:10px}
+.fld span{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+.fld input,.fld select{width:100%}
+.fld.chk{display:flex;gap:8px;align-items:center}
+.fld.chk input{width:auto;min-height:0}
+.err-t{color:var(--err);min-height:18px;font-size:13px;margin:4px 0;white-space:pre-wrap;max-height:180px;overflow:auto}
+.th{width:40px;height:40px;border-radius:6px;object-fit:cover;background:#e9edf2;display:block}
+.th.ph{border:1px dashed #b9c2cd;background:transparent}
+.note img.th{width:72px;height:72px;margin-top:6px}
+.note{font-size:13px;color:var(--muted);margin:0 0 10px}
+.note a{color:var(--accent)}
+.acts{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+#toast{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:8px;z-index:60}
+.toast{background:var(--ink);color:#fff;padding:9px 14px;border-radius:8px;max-width:340px}
+.toast.err{background:var(--err)}
+@media(max-width:820px){
+  .app{grid-template-columns:60px minmax(0,1fr)} .brand,.nav span{display:none} .nav{justify-content:center;padding:12px 0}
+  .gate{grid-template-columns:1fr} #view{padding:14px 12px 40px}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="side" aria-label="Main">
+    <div class="brand">TagSentry</div>
+    <button class="nav" data-go="dashboard"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg><span>Dashboard</span></button>
+    <button class="nav" data-go="gate"><svg viewBox="0 0 24 24"><path d="M5 21V4h9l5 4v13"/><path d="M9 21v-7h6v7"/></svg><span>Gate Portal</span></button>
+    <button class="nav" data-go="assets"><svg viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.3"/></svg><span>Assets</span></button>
+    <button class="nav" data-go="locations"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg><span>Locations</span></button>
+    <button class="nav" data-go="orders"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h6"/></svg><span>Orders</span></button>
+    <button class="nav" data-go="history"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg><span>History</span></button>
+  </nav>
+  <div class="main">
+    <header class="top">
+      <div class="crumb" id="crumb"></div>
+      <button class="chip info" id="locChip" data-go="locations" title="Where the reader is placed"></button>
+      <span class="chip" id="rdChip">Reader: waiting</span>
+      <button class="icon" data-act="settings" aria-label="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg></button>
+    </header>
+    <main id="view"></main>
+  </div>
+</div>
+
+<div class="overlay" id="modal" hidden>
+  <form class="dlg" id="mForm" novalidate>
+    <h2 id="mTitle"></h2>
+    <div id="mFields"></div>
+    <div class="err-t" id="mErr" role="alert"></div>
+    <div class="acts"><button type="button" class="btn" data-act="close-modal">Cancel</button><button type="submit" class="btn primary" id="mSubmit">Save</button></div>
+  </form>
+</div>
+<div id="toast" aria-live="polite"></div>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const S = { state: null, locations: [], page: 'dashboard', gateSel: null, selEpc: null, selName: '', selOrder: null,
+            hf: { q: '', loc: '', res: '' } };
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts,
+    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined });
+  const isJson = (r.headers.get('content-type') || '').includes('json');
+  const data = isJson ? await r.json() : null;
+  if (!r.ok) throw new Error((data && data.msg) || r.statusText);
+  return data;
+}
+const post = (p, body = {}) => api(p, { method: 'POST', body });
+
+function toast(msg, isErr) {
+  const t = document.createElement('div');
+  t.className = 'toast' + (isErr ? ' err' : ''); t.textContent = msg;
+  $('#toast').appendChild(t); setTimeout(() => t.remove(), isErr ? 5000 : 2800);
+}
+function fmt(ts) {
+  if (!ts) return '';
+  const d = new Date(ts), now = new Date();
+  const hms = d.toLocaleTimeString('en-GB');
+  return d.toDateString() === now.toDateString() ? hms : d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' }) + ' ' + hms;
+}
+const chip = (kind, text) => `<span class="chip ${kind}">${esc(text)}</span>`;
+const RESULT = { OK: ['ok', 'OK'], UNKNOWN: ['err', 'Unknown tag'], UNEXPECTED: ['err', 'Unexpected item'],
+                 OVER: ['warn', 'Over-counted'], WRONG_LOCATION: ['err', 'Wrong location'] };
+const ASSET_ST = { RIGHT: ['ok', 'Right place'], WRONG: ['err', 'Wrong place'], UNSEEN: ['warn', 'Unseen'], NO_HOME: ['info', 'No home'] };
+const ORDER_ST = { OPEN: ['info', 'Open'], COMPLETED: ['ok', 'Completed'], DISCREPANCY: ['err', 'Discrepancy'] };
+const LINE_ST = { DONE: ['ok', 'Done'], PENDING: ['info', 'Pending'], OVER: ['warn', 'Over-counted'] };
+const mk = (map, k) => { const m = map[k] || ['', k || '']; return chip(m[0], m[1]); };
+const dirChip = d => d ? chip(d === 'In' ? 'info' : 'ok', d) : '<span class="muted">-</span>';
+
+function tbl(cols, rows, empty, rowAttr) {
+  if (!rows.length) return `<div class="empty">${esc(empty)}</div>`;
+  return `<div class="tw"><table><thead><tr>${cols.map(c => `<th>${esc(c.h)}</th>`).join('')}</tr></thead><tbody>` +
+    rows.map(r => `<tr ${rowAttr ? rowAttr(r) : ''}>${cols.map(c => `<td>${c.f(r)}</td>`).join('')}</tr>`).join('') +
+    '</tbody></table></div>';
+}
+function alertOf(e) {
+  const n = e.name || e.epc;
+  const msg = { UNKNOWN: `Unregistered tag ${e.epc}`, UNEXPECTED: `${n} is not on this order`, OVER: `${n}: more than ordered`,
+    WRONG_LOCATION: `${n} is at ${e.location_name || 'an unknown location'} but belongs at ${e.home_name || '?'}` }[e.result];
+  return msg ? { cls: e.result === 'OVER' ? 'warn' : 'err', msg } : null;
+}
+const imgUrl = a => `/api/assets/${encodeURIComponent(a.epc)}/image?v=${encodeURIComponent(a.image_v)}`;
+const thumb = a => a && a.image_v ? `<img class="th" src="${imgUrl(a)}" alt="" loading="lazy">` : '<span class="th ph" aria-hidden="true"></span>';
+async function shrink(file, max = 320) {
+  const bmp = await createImageBitmap(file);
+  const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const cv = document.createElement('canvas');
+  cv.width = Math.max(1, Math.round(bmp.width * k)); cv.height = Math.max(1, Math.round(bmp.height * k));
+  const g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height);
+  g.drawImage(bmp, 0, 0, cv.width, cv.height);
+  return cv.toDataURL('image/jpeg', 0.82);
+}
+let actx;
+function beep(freq = 440, ms = 220) {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.frequency.value = freq; g.gain.value = 0.08; o.connect(g); g.connect(actx.destination);
+    o.start(); o.stop(actx.currentTime + ms / 1000);
+  } catch (e) {}
+}
+
+/* ------------------------------------------------------------- modal */
+const M = { fields: [], onSubmit: null };
+function openModal({ title, fields, submit = 'Save', onSubmit, wide = false }) {
+  $('#mForm').classList.toggle('wide', wide);
+  M.fields = fields; M.onSubmit = onSubmit;
+  $('#mTitle').textContent = title; $('#mSubmit').textContent = submit; $('#mErr').textContent = '';
+  $('#mFields').innerHTML = fields.map((f, i) => {
+    const id = 'mf' + i, req = f.required ? ' *' : '';
+    if (f.type === 'note') return `<p class="note">${f.html}</p>`;
+    if (f.type === 'file') return `<label class="fld"><span>${esc(f.label)}${req}</span><input id="${id}" name="${f.name}" type="file" accept="${f.accept || ''}"></label>`;
+    if (f.type === 'checkbox') return `<label class="fld chk"><input type="checkbox" id="${id}" name="${f.name}" ${f.value ? 'checked' : ''}><span>${esc(f.label)}</span></label>`;
+    if (f.type === 'select')
+      return `<label class="fld"><span>${esc(f.label)}${req}</span><select id="${id}" name="${f.name}">${f.options.map(o =>
+        `<option value="${esc(o.v)}" ${String(o.v) === String(f.value ?? '') ? 'selected' : ''}>${esc(o.l)}</option>`).join('')}</select></label>`;
+    const list = f.list ? `list="${id}l"` : '';
+    const dl = f.list ? `<datalist id="${id}l">${f.list.map(v => `<option value="${esc(v)}">`).join('')}</datalist>` : '';
+    return `<label class="fld"><span>${esc(f.label)}${req}</span><input id="${id}" name="${f.name}" type="${f.type || 'text'}" value="${esc(f.value ?? '')}" ${list} ${f.readonly ? 'readonly' : ''} ${f.min !== undefined ? `min="${f.min}"` : ''} autocomplete="off">${dl}</label>`;
+  }).join('');
+  $('#modal').hidden = false;
+  const first = $('#mFields input:not([readonly]),#mFields select'); if (first) first.focus();
+}
+const closeModal = () => { $('#modal').hidden = true; };
+$('#mForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const vals = {};
+  for (const f of M.fields) {
+    if (f.type === 'note') continue;
+    const el = $('#mForm').elements[f.name];
+    vals[f.name] = f.type === 'checkbox' ? el.checked : f.type === 'file' ? el.files[0] : el.value.trim();
+    if (f.required && !vals[f.name]) { $('#mErr').textContent = `${f.label} is required`; el.focus(); return; }
+  }
+  try { await M.onSubmit(vals); closeModal(); } catch (err) { $('#mErr').textContent = err.message; }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+/* ------------------------------------------------------------- pages */
+const locOptions = (withNone, noneLabel = 'None') =>
+  (withNone ? [{ v: '', l: noneLabel }] : []).concat(S.locations.map(l => ({ v: l.id, l: `${l.name} (${l.type.toLowerCase()})` })));
+
+const pages = {};
+
+pages.dashboard = {
+  title: 'Dashboard',
+  shell: () => `<div class="metrics" id="dMetrics"></div>
+    <div class="two"><section class="card"><h3>Assets in the wrong place</h3><div id="dWrong"></div></section>
+    <section class="card"><h3>Latest events</h3><div id="dEvents"></div></section></div>
+    <section class="card" id="dUnreg"></section>`,
+  async load() {
+    const d = await api('/api/dashboard');
+    $('#dMetrics').innerHTML = [['Total assets', d.total_assets, ''], ['Right place', d.right, 'var(--ok)'],
+      ['Wrong place', d.wrong, d.wrong ? 'var(--err)' : ''], ['Unseen', d.unseen, d.unseen ? 'var(--warn)' : '']]
+      .map(m => `<div class="metric"><span>${m[0]}</span><b style="color:${m[2]}">${m[1]}</b></div>`).join('');
+    $('#dWrong').innerHTML = tbl([
+      { h: 'Asset', f: a => esc(a.name) }, { h: 'Home', f: a => esc(a.home_name) },
+      { h: 'Now', f: a => chip('err', a.current_name || '-') }], d.wrong_list, 'Everything seen is where it belongs.',
+      a => `class="click" data-act="open-history" data-epc="${esc(a.epc)}" data-name="${esc(a.name)}"`);
+    $('#dEvents').innerHTML = tbl([
+      { h: 'Time', f: e => fmt(e.ts) }, { h: 'Asset', f: e => esc(e.name || e.epc) },
+      { h: 'Where', f: e => `${dirChip(e.direction)} ${esc(e.location_name || '')}` }, { h: 'Result', f: e => mk(RESULT, e.result) }],
+      d.recent_events, 'No reads yet. Start the reader and present a tag.');
+    $('#dUnreg').innerHTML = d.unregistered
+      ? `${chip('warn', d.unregistered + ' unregistered tag' + (d.unregistered > 1 ? 's' : ''))} are being read. <a href="#assets" data-go="assets">Register them</a>`
+      : '<span class="muted">No unregistered tags in range.</span>';
+  }
+};
+
+pages.gate = {
+  title: 'Gate Portal',
+  shell: () => `<div class="bar" id="gBar"></div><div id="gBanner"></div>
+    <div id="gBody"></div>
+    <section class="card" id="gRefCard"><h3>Reference and reason</h3>
+      <div class="bar"><input id="gRef" placeholder="Reference" aria-label="Reference"></div>
+      <textarea id="gReason" rows="2" placeholder="Reason or notes saved when the order is committed" aria-label="Reason"></textarea></section>
+    <section class="card"><div class="bar" style="margin-bottom:6px"><h3 style="margin:0">Tags in range (live)</h3><span class="muted" id="gLiveSum"></span><span class="grow"></span>
+      <button class="btn sm" data-go="history">Event log</button><button class="btn sm" data-act="live-reset">Reset counters</button></div><div id="gLive"></div></section>`,
+  async load() {
+    const [st, orders, assets, recent, live] = await Promise.all([api('/api/state'), api('/api/orders'), api('/api/assets'), api('/api/events?limit=12'), api('/api/live')]);
+    S.state = st; S.live = live; setTop(); renderLive();
+    const open = orders.filter(o => o.status === 'OPEN');
+    const active = st.active_order_id;
+    if (active) S.gateSel = active;
+    else if (!open.some(o => o.id === S.gateSel)) S.gateSel = open.length ? open[0].id : null;
+    const sel = S.gateSel;
+    $('#gRefCard').hidden = !sel;
+    $('#gBar').innerHTML = `<select id="gSel" aria-label="Order" ${active ? 'disabled' : ''}>${open.length ? open.map(o =>
+        `<option value="${o.id}" ${o.id === sel ? 'selected' : ''}>${esc(o.code)} (${o.type === 'OUT' ? 'outbound' : 'inbound'})</option>`).join('')
+        : '<option value="">No open order</option>'}</select>` +
+      (active ? `${chip('ok', 'Scanning')} <button class="btn" data-act="gate-stop">Stop reader</button><button class="btn" data-act="gate-detach" title="Stop scanning against this order. Scans stay on the order.">Detach order</button>`
+              : `<button class="btn primary" data-act="gate-start">${sel ? 'Start' : 'Start reader'}</button><button class="btn" data-act="gate-stop">Stop reader</button>`) +
+      `<span class="grow"></span>` + (sel ? `<button class="btn" data-act="export" data-url="/api/orders/${sel}.csv">Export result</button><button class="btn primary" data-act="gate-commit">Commit order</button>` : '');
+    const firstAlert = recent.map(alertOf).find(Boolean);
+    $('#gBanner').innerHTML = firstAlert ? `<div class="banner ${firstAlert.cls}" role="alert">${esc(firstAlert.msg)}</div>` : '';
+    if (!sel) {
+      $('#gBody').innerHTML = `<div class="card empty">No open order. <a href="#orders" data-go="orders">Create one in Orders</a>, then come back to scan.</div>`;
+      return;
+    }
+    const ev = await api('/api/orders/' + sel);
+    renderGateBody(ev, assets, recent);
+  }
+};
+function renderLive() {
+  const L = S.live, box = $('#gLive');
+  if (!L || !box) return;
+  $('#gLiveSum').textContent = `${L.total_reads} reads, ${L.unique} tag${L.unique === 1 ? '' : 's'}` +
+    (L.unregistered ? ` (${L.unregistered} unregistered)` : '') + `, since ${new Date(L.since).toLocaleTimeString('en-GB')}`;
+  box.innerHTML = tbl([
+    { h: 'EPC', f: t => `<span class="mono">${esc(t.epc)}</span>` },
+    { h: 'Asset', f: t => t.registered ? esc(t.name) : chip('warn', 'Unregistered') },
+    { h: 'Reads', f: t => `<b>${t.reads}</b>` }, { h: 'RSSI', f: t => Math.round(t.rssi) },
+    { h: 'Ant', f: t => t.antenna ?? '' }, { h: 'Dir', f: t => dirChip(t.direction) },
+    { h: 'Last seen', f: t => new Date(t.last_ts).toLocaleTimeString('en-GB') }],
+    L.tags, 'No tags read since the counters were reset. Press Start reader and present a tag.');
+}
+function renderGateBody(ev, assets, recent) {
+  const names = Object.fromEntries(assets.map(a => [a.epc, a.name]));
+  const byEpc = Object.fromEntries(assets.map(a => [a.epc, a]));
+  const catImg = {}; assets.forEach(a => { if (a.image_v && !catImg[a.category]) catImg[a.category] = a; });
+  const s = ev.summary, last = (recent || [])[0];
+  const lineRows = ev.lines.map(l => `<tr><td class="scan">${l.scanned}</td><td>${l.expected}</td>
+      <td>${l.kind === 'EPC' ? 'By EPC' : 'By category'}</td>
+      <td>${l.kind === 'EPC' ? `<span class="mono">${esc(l.epc)}</span>` : ''}</td>
+      <td>${esc(l.kind === 'EPC' ? (names[l.epc] || '') : l.category)}</td><td>${mk(LINE_ST, l.status)}</td><td>${thumb(l.kind === 'EPC' ? byEpc[l.epc] : catImg[l.category])}</td></tr>`).join('');
+  const exRows = ev.exceptions.map(x => `<tr><td class="scan">1</td><td class="muted">-</td><td>Exception</td>
+      <td><span class="mono">${esc(x.epc)}</span></td><td>${esc(x.name || 'Unregistered')}</td><td>${mk(RESULT, x.reason)}</td><td>${thumb(byEpc[x.epc])}</td></tr>`).join('');
+  $('#gBody').innerHTML = `<div class="gate"><div class="card sumcol">
+      <div class="big">${s.total_tags}</div><div class="muted">Tags read</div>
+      <div class="prog" role="progressbar" aria-valuenow="${s.progress_pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${s.progress_pct}%"></i></div>
+      <div class="muted">${s.matched_total} of ${s.expected_total} matched (${s.progress_pct}%)</div>
+      <div style="margin-top:14px">${last ? dirChip(last.direction) + ' <span class="muted">last direction</span>' : ''}</div>
+      <div style="margin-top:8px">${s.exception_count ? chip('err', s.exception_count + ' exception' + (s.exception_count > 1 ? 's' : '')) : chip('ok', 'No exceptions')}</div></div>
+    <div class="card"><div class="tw"><table><thead><tr><th>Scanned</th><th>Expected</th><th>Type</th><th>EPC</th><th>Name</th><th>Status</th><th>Image</th></tr></thead>
+      <tbody>${lineRows || '<tr><td colspan="7" class="empty">This order has no lines yet. Add them in Orders.</td></tr>'}${exRows}</tbody></table></div></div></div>`;
+}
+
+pages.assets = {
+  title: 'Assets',
+  shell: () => `<div class="bar"><button class="btn primary" data-act="register">Register tag</button><button class="btn" data-act="import-assets">Import CSV</button><button class="btn" data-act="export" data-url="/api/assets.csv">Export CSV</button>
+      <input id="aQ" type="search" placeholder="Search EPC, name, ID or serial" aria-label="Search" style="min-width:240px"><span class="grow"></span></div>
+    <section class="card"><div class="bar" style="margin-bottom:6px"><h3 style="margin:0">Unregistered tags (live from the reader)</h3><span class="grow"></span><button class="btn sm" data-act="export" data-url="/api/assets/unregistered.csv" title="Fill in the name column, then use Import CSV">Export CSV</button></div><div id="aUnreg"></div></section>
+    <section class="card"><div id="aTable"></div></section>`,
+  async load() {
+    const q = $('#aQ') ? $('#aQ').value : '';
+    const [un, assets] = await Promise.all([api('/api/assets/unregistered'), api('/api/assets?search=' + encodeURIComponent(q))]);
+    $('#aUnreg').innerHTML = tbl([
+      { h: 'EPC', f: t => `<span class="mono">${esc(t.epc)}</span>` }, { h: 'RSSI', f: t => Math.round(t.rssi) },
+      { h: 'Reads', f: t => t.reads }, { h: 'Last read', f: t => fmt(t.last_seen_ts) },
+      { h: '', f: t => `<button class="btn sm primary" data-act="register" data-epc="${esc(t.epc)}">Register</button>` }],
+      un, 'No unregistered tags. Present a new tag to the reader.');
+    const cols = [{ h: '', f: a => thumb(a) }, { h: 'EPC', f: a => `<span class="mono">${esc(a.epc)}</span>` }];
+    if (assets.some(a => a.asset_code)) cols.push({ h: 'Asset ID', f: a => esc(a.asset_code) });
+    cols.push({ h: 'Name', f: a => esc(a.name) });
+    if (assets.some(a => a.serial_number)) cols.push({ h: 'Serial', f: a => esc(a.serial_number) });
+    cols.push({ h: 'Category', f: a => esc(a.category) }, { h: 'Home', f: a => esc(a.home_name || '-') },
+      { h: 'Now', f: a => esc(a.current_name || '-') }, { h: 'Status', f: a => mk(ASSET_ST, a.status) },
+      { h: '', f: a => `<button class="btn sm" data-act="edit-asset" data-epc="${esc(a.epc)}">Edit</button>` });
+    $('#aTable').innerHTML = tbl(cols,
+      assets, q ? 'No assets match.' : 'No assets yet. Register a tag from the list above.',
+      a => `class="click" data-act="open-history" data-epc="${esc(a.epc)}" data-name="${esc(a.name)}"`);
+    S.assetCache = assets;
+  }
+};
+
+pages.locations = {
+  title: 'Locations',
+  shell: () => `<section class="card"><h3>Reader is placed at</h3><div class="bar" style="margin:0"><select id="lReader" aria-label="Reader location"></select>
+      <span class="muted">Every new read is stamped with this location. Change it to simulate the reader at another gate or department.</span></div></section>
+    <div class="bar"><button class="btn primary" data-act="add-location">Add location</button></div>
+    <section class="card"><div id="lTable"></div></section>`,
+  async load() {
+    const [locs, st] = await Promise.all([api('/api/locations'), api('/api/state')]);
+    S.locations = locs; S.state = st; setTop();
+    $('#lReader').innerHTML = [{ v: '', l: 'Not set' }].concat(locs.map(l => ({ v: l.id, l: l.name }))).map(o =>
+      `<option value="${o.v}" ${String(o.v) === String(st.reader_location_id ?? '') ? 'selected' : ''}>${esc(o.l)}</option>`).join('');
+    $('#lTable').innerHTML = tbl([
+      { h: 'Name', f: l => esc(l.name) }, { h: 'Type', f: l => esc(l.type.charAt(0) + l.type.slice(1).toLowerCase()) },
+      { h: 'Assets (home)', f: l => l.home_count }, { h: 'Assets (here now)', f: l => l.current_count }],
+      locs, 'No locations yet. Add your warehouse, gate and departments.');
+  }
+};
+
+pages.orders = {
+  title: 'Orders',
+  shell: () => `<div class="bar"><button class="btn primary" data-act="new-order">Create order</button></div>
+    <section class="card"><div id="oTable"></div></section><div id="oDetail"></div>`,
+  async load() {
+    const orders = await api('/api/orders');
+    if (!orders.some(o => o.id === S.selOrder)) S.selOrder = orders.length ? orders[0].id : null;
+    $('#oTable').innerHTML = tbl([
+      { h: 'Code', f: o => esc(o.code) }, { h: 'Type', f: o => o.type === 'OUT' ? 'Outbound' : 'Inbound' },
+      { h: 'Status', f: o => mk(ORDER_ST, o.status) }, { h: 'Progress', f: o => `${o.progress_pct}% (${o.matched_total}/${o.expected_total})` },
+      { h: 'Created', f: o => fmt(o.created_at) }], orders, 'No orders yet. Create one to start scanning.',
+      o => `class="click ${o.id === S.selOrder ? 'sel' : ''}" data-act="sel-order" data-id="${o.id}"`);
+    if (!S.selOrder) { $('#oDetail').innerHTML = ''; return; }
+    const [ev, assets] = await Promise.all([api('/api/orders/' + S.selOrder), api('/api/assets')]);
+    S.orderEv = ev; S.assetCache = assets;
+    const names = Object.fromEntries(assets.map(a => [a.epc, a.name]));
+    const o = ev.order, open = o.status === 'OPEN';
+    $('#oDetail').innerHTML = `<section class="card"><div class="bar" style="margin-bottom:8px"><h3 style="margin:0">Lines of ${esc(o.code)}</h3>${mk(ORDER_ST, o.status)}<span class="grow"></span>
+      <button class="btn" data-act="export" data-url="/api/orders/${o.id}.csv">Export result</button>${open ? '<button class="btn" data-act="import-lines">Import CSV</button><button class="btn" data-act="add-cat">Add by category</button><button class="btn" data-act="add-epc">Add by EPC</button>' : ''}</div>` +
+      tbl([{ h: 'Kind', f: l => l.kind === 'EPC' ? 'By EPC' : 'By category' },
+        { h: 'Category / EPC', f: l => l.kind === 'EPC' ? `<span class="mono">${esc(l.epc)}</span> ${esc(names[l.epc] || '')}` : esc(l.category) },
+        { h: 'Expected', f: l => l.expected }, { h: 'Scanned', f: l => l.scanned }, { h: 'Status', f: l => mk(LINE_ST, l.status) },
+        { h: '', f: l => open ? `<button class="btn sm danger" data-act="del-line" data-id="${l.id}">Remove</button>` : '' }],
+        ev.lines, open ? 'No lines yet. Add by category (a count of a type) or by a specific EPC.' : 'This order has no lines.') +
+      (o.reason ? `<p class="muted">Reason: ${esc(o.reason)}</p>` : '') + '</section>';
+  }
+};
+
+pages.history = {
+  title: 'History',
+  shell: () => `<div class="bar"><input id="hQ" type="search" placeholder="EPC or name" aria-label="Search" value="${esc(S.hf.q)}">
+      <select id="hLoc" aria-label="Location"></select>
+      <select id="hRes" aria-label="Result"><option value="">All results</option>${Object.entries(RESULT).map(([k, v]) => `<option value="${k}" ${S.hf.res === k ? 'selected' : ''}>${v[1]}</option>`).join('')}</select>
+      <span class="grow"></span><button class="btn" id="hCsv" data-act="export" data-url="/api/events.csv">Export CSV</button></div>
+    <div class="two"><section class="card"><div id="hTable"></div></section><section class="card"><h3 id="hTlTitle">Movement history</h3><div id="hTl"></div></section></div>`,
+  async load() {
+    if (!S.locations.length) S.locations = await api('/api/locations');
+    $('#hLoc').innerHTML = `<option value="">All locations</option>` + S.locations.map(l => `<option value="${l.id}" ${String(S.hf.loc) === String(l.id) ? 'selected' : ''}>${esc(l.name)}</option>`).join('');
+    const p = new URLSearchParams({ q: S.hf.q, location_id: S.hf.loc, result: S.hf.res, limit: 200 });
+    $('#hCsv').dataset.url = '/api/events.csv?' + p;
+    const ev = await api('/api/events?' + p);
+    $('#hTable').innerHTML = tbl([
+      { h: 'Time', f: e => fmt(e.ts) }, { h: 'EPC', f: e => `<span class="mono">${esc(e.epc)}</span>` }, { h: 'Asset', f: e => esc(e.name || '') },
+      { h: 'Ant', f: e => e.antenna ?? '' }, { h: 'Dir', f: e => dirChip(e.direction) },
+      { h: 'Location', f: e => esc(e.location_name || '') }, { h: 'Result', f: e => mk(RESULT, e.result) }],
+      ev, 'No events match.', e => `class="click ${e.epc === S.selEpc ? 'sel' : ''}" data-act="open-history" data-epc="${esc(e.epc)}" data-name="${esc(e.name || '')}"`);
+    if (S.selEpc) {
+      const h = await api(`/api/assets/${encodeURIComponent(S.selEpc)}/history`);
+      $('#hTlTitle').textContent = 'Movement history: ' + (S.selName || S.selEpc);
+      $('#hTl').innerHTML = h.length ? `<div class="tl">` + h.slice().reverse().map(x =>
+        `<div class="${x.at_home === 1 ? 'home' : (x.result === 'WRONG_LOCATION' ? 'bad' : '')}"><b>${esc(x.location_name || 'Unknown location')}</b>
+        ${x.at_home === 1 ? chip('ok', 'Home') : ''} ${dirChip(x.direction)} ${x.result && x.result !== 'OK' ? mk(RESULT, x.result) : ''}
+        <div class="muted">${fmt(x.ts)}</div></div>`).join('') + '</div>' : '<div class="empty">No movements recorded.</div>';
+    } else {
+      $('#hTlTitle').textContent = 'Movement history';
+      $('#hTl').innerHTML = '<div class="empty">Select an event to see where that asset has been.</div>';
+    }
+  }
+};
+
+/* ------------------------------------------------------------ router */
+function setTop() {
+  const id = S.state && S.state.reader_location_id;
+  const loc = S.locations.find(l => l.id === id);
+  $('#locChip').textContent = 'Reader at: ' + (loc ? loc.name : 'not set');
+}
+function setReaderChip() {
+  const c = $('#rdChip'), r = (S.state && S.state.reader) || {};
+  const ago = r.seconds_ago, lim = r.silent_after || 30, lp = r.last_post;
+  if (ago == null) { c.className = 'chip'; c.textContent = 'Reader: waiting for data'; }
+  else if (ago > lim) { c.className = 'chip err'; c.textContent = `Reader silent (${ago}s)`; }
+  else { c.className = 'chip ok'; c.innerHTML = '<span class="live"></span>Reader online'; }
+  c.title = lp ? `Last POST ${ago}s ago: ${lp.tags} tag(s), ${lp.stored} stored, ${lp.gpi} GPI, ${lp.heartbeat ? 'heartbeat, ' : ''}${lp.ignored} ignored`
+               : 'No data received from the reader yet';
+}
+function seen() { if (S.state) { S.state.reader = { ...(S.state.reader || {}), seconds_ago: 0 }; setReaderChip(); } }
+async function go(page) {
+  if (!pages[page]) page = 'dashboard';
+  S.page = page; if (location.hash !== '#' + page) history.replaceState(null, '', '#' + page);
+  document.querySelectorAll('.nav').forEach(n => n.classList.toggle('on', n.dataset.go === page));
+  $('#crumb').innerHTML = `Home / <b>${pages[page].title}</b>`;
+  $('#view').innerHTML = pages[page].shell();
+  await load();
+}
+async function load() {
+  try {
+    if (!S.locations.length) S.locations = await api('/api/locations');
+    S.state = await api('/api/state');
+    setTop(); setReaderChip(); await pages[S.page].load();
+  } catch (e) { toast(e.message, true); }
+}
+let rt; const refresh = () => { clearTimeout(rt); rt = setTimeout(load, 350); };
+
+/* ----------------------------------------------------------- actions */
+const categories = () => [...new Set((S.assetCache || []).map(a => a.category).filter(Boolean))];
+
+function registerModal(epc, existing) {
+  const a = existing || {};
+  openModal({ title: existing ? 'Edit asset' : 'Register tag', submit: existing ? 'Save' : 'Register', fields: [
+    { name: 'epc', label: 'EPC', value: epc || '', readonly: !!epc, required: true },
+    { name: 'name', label: 'Name', value: a.name || '', required: true },
+    { name: 'asset_code', label: 'Asset ID', value: a.asset_code || '' }, { name: 'serial_number', label: 'Serial number', value: a.serial_number || '' },
+    { name: 'category', label: 'Category', value: a.category || '', list: categories() },
+    { name: 'home_location_id', label: 'Home location', type: 'select', options: locOptions(true, 'Not set'), value: a.home_location_id ?? '' },
+    { name: 'color', label: 'Color', value: a.color || '' }, { name: 'size', label: 'Size', value: a.size || '' }]
+      .concat(Object.keys(a.extra || {}).length ? [{ type: 'note', html: 'Custom fields from imports:<br>' + Object.entries(a.extra).map(([k, x]) => `<b>${esc(k)}</b>: ${esc(x)}`).join('<br>') }] : [])
+      .concat(a.image_v ? [{ type: 'note', html: `Current photo<br>${thumb(a).replace('class="th"', 'class="th"')}` }, { name: 'remove_image', label: 'Remove current photo', type: 'checkbox', value: false }] : [])
+      .concat([{ name: 'image', label: 'Photo (optional)', type: 'file', accept: 'image/*' }]),
+    onSubmit: async v => {
+      const body = { name: v.name, category: v.category, home_location_id: v.home_location_id || null, color: v.color, size: v.size, asset_code: v.asset_code, serial_number: v.serial_number };
+      if (existing) await api('/api/assets/' + encodeURIComponent(v.epc), { method: 'PUT', body });
+      else await post('/api/assets', { ...body, epc: v.epc });
+      const iu = `/api/assets/${encodeURIComponent(v.epc)}/image`;
+      if (v.remove_image) await api(iu, { method: 'DELETE' });
+      if (v.image) await api(iu, { method: 'PUT', body: { data_url: await shrink(v.image) } });
+      toast(existing ? 'Asset updated' : 'Tag registered'); await load();
+    } });
+}
+function assetImportFlow() {
+  openModal({ title: 'Import assets', submit: 'Next', fields: [
+    { type: 'note', html: 'Any CSV works. On the next step you check which column is which, and the choice is remembered for files with the same columns. Or <a href="/api/templates/assets.csv" download>download our template</a>.' },
+    { name: 'file', label: 'CSV file', type: 'file', accept: '.csv,text/csv', required: true }],
+    onSubmit: async v => {
+      const csv = await v.file.text();
+      const pv = await post('/api/assets/import/preview', { csv });
+      setTimeout(() => mappingModal(csv, pv, v.file.name), 0);   // opens after this dialog closes
+    } });
+}
+function mappingModal(csv, pv, fileName) {
+  const cols = pv.headers.filter(Boolean);
+  const opts = [{ v: '', l: '(not in this file)' }].concat(cols.map(h => ({ v: h, l: h })));
+  const sample = `<div class="tw"><table class="mini"><thead><tr>${pv.headers.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>` +
+    pv.samples.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('') + '</tbody></table></div>';
+  const fields = [{ type: 'note', html: `<b>${esc(fileName)}</b>: ${pv.row_count} row${pv.row_count === 1 ? '' : 's'}. ` +
+    (pv.saved ? 'Using the mapping you saved for this layout.' : 'Check that each field points at the right column.') + sample }];
+  pv.fields.forEach(f => fields.push({ name: 'map_' + f.key, label: f.label, type: 'select', options: opts, value: pv.mapping[f.key] || '', required: f.required }));
+  const free = pv.headers.map((h, i) => ({ h, i })).filter(x => x.h && !Object.values(pv.mapping).includes(x.h));
+  if (free.length) fields.push({ type: 'note', html: 'These columns match no field. Keep them as custom fields (shown in the asset details and exported again)?' });
+  free.forEach(x => fields.push({ name: 'ex_' + x.i, label: x.h, type: 'checkbox', value: pv.extras.includes(x.h) }));
+  openModal({ title: 'Match columns', submit: 'Import', wide: true, fields, onSubmit: async v => {
+    const mapping = {}; pv.fields.forEach(f => { mapping[f.key] = v['map_' + f.key]; });
+    const extras = pv.headers.filter((h, i) => h && v['ex_' + i]);
+    const r = await post('/api/assets/import', { csv, mapping, extras });
+    if (r.errors.length) {
+      const shown = r.errors.slice(0, 8).map(e => (e.row ? `Row ${e.row}: ` : '') + e.msg);
+      if (r.errors.length > 8) shown.push(`...and ${r.errors.length - 8} more`);
+      throw new Error('Nothing was imported. Fix these and try again:\n' + shown.join('\n'));
+    }
+    let msg = `${r.created} created, ${r.updated} updated` + (r.skipped ? `, ${r.skipped} skipped (no name)` : '') +
+      (r.locations_created ? `, ${r.locations_created} location(s) added` : '') + (r.images_imported ? `, ${r.images_imported} photo(s)` : '');
+    if (r.images_local) msg += `. ${r.images_local} image path(s) are local files and were not imported`;
+    if (r.images_failed) msg += `. ${r.images_failed} photo(s) failed (${(r.image_errors || [])[0] || 'download error'})`;
+    toast(msg, !!r.images_failed); await load();
+  } });
+}
+function importModal(title, templateUrl, columns, url, done) {
+  openModal({ title, submit: 'Import', fields: [
+    { type: 'note', html: `Columns: <b>${columns}</b>. <a href="${templateUrl}" download>Download the template</a>. Save as CSV (UTF-8). New tags with no name are skipped. If any other row has a problem, nothing is imported.` },
+    { name: 'file', label: 'CSV file', type: 'file', accept: '.csv,text/csv', required: true }],
+    onSubmit: async v => {
+      const r = await post(url, { csv: await v.file.text() });
+      if (r.errors.length) {
+        const shown = r.errors.slice(0, 8).map(e => (e.row ? `Row ${e.row}: ` : '') + e.msg);
+        if (r.errors.length > 8) shown.push(`...and ${r.errors.length - 8} more`);
+        throw new Error('Nothing was imported. Fix these and try again:\n' + shown.join('\n'));
+      }
+      toast(done(r)); await load();
+    } });
+}
+async function exportCsv(url) {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`Export failed (HTTP ${r.status}). Make sure the server is running the latest server.py, then restart it`);
+    const text = await r.text();
+    if (text.trim().split(/\r?\n/).length < 2) { toast('Nothing to export yet: there are no rows', true); return; }
+    const m = /filename=([^;]+)/.exec(r.headers.get('Content-Disposition') || '');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['\ufeff' + text], { type: 'text/csv' }));   // BOM so Excel reads UTF-8
+    a.download = m ? m[1].trim() : 'export.csv';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  } catch (e) { toast(e.message, true); }
+}
+const creds = () => ({ ip: localStorage.getItem('readerIP') || '', password: localStorage.getItem('readerPass') || '' });
+
+const actions = {
+  settings: async () => {
+    const st = await api('/api/state');
+    openModal({ title: 'Settings', fields: [
+      { name: 'ip', label: 'Reader IP', value: localStorage.getItem('readerIP') || '' },
+      { name: 'pass', label: 'Reader password', type: 'password', value: localStorage.getItem('readerPass') || '' },
+      { name: 'min_rssi', label: 'Ignore reads weaker than (dBm)', type: 'number', value: st.settings.min_rssi },
+      { name: 'interval', label: 'Re-log a stationary tag every (seconds)', type: 'number', value: st.settings.event_interval_sec, min: 1 },
+      { name: 'sound', label: 'Beep on alerts', type: 'checkbox', value: localStorage.getItem('sound') !== 'off' },
+      { name: 'reset', label: 'Delete data', type: 'select', value: 'keep', options: [{ v: 'keep', l: 'Keep everything' }, { v: 'events', l: 'Clear reads and history only' }, { v: 'all', l: 'Clear everything (assets, orders, locations, history)' }] }],
+      onSubmit: async v => {
+        localStorage.setItem('readerIP', v.ip); localStorage.setItem('readerPass', v.pass);
+        localStorage.setItem('sound', v.sound ? 'on' : 'off');
+        await post('/api/settings', { min_rssi: v.min_rssi, event_interval_sec: v.interval });
+        if (v.reset !== 'keep') {
+          const what = v.reset === 'all' ? 'ALL assets, orders, locations and history' : 'all reads and history';
+          if (!confirm(`Delete ${what}? This cannot be undone.`)) throw new Error('Settings saved. Nothing was deleted');
+          await post('/api/reset', { scope: v.reset, confirm: true }); S.locations = []; toast('Data cleared'); await load(); return;
+        }
+        toast('Settings saved');
+      } });
+  },
+  'close-modal': closeModal,
+  export: t => exportCsv(t.dataset.url),
+  'import-assets': assetImportFlow,
+  'import-lines': () => importModal('Import order lines', '/api/templates/order-lines.csv', 'kind, category, epc, qty',
+    `/api/orders/${S.selOrder}/lines/import`, r => `${r.added} line(s) added`),
+  register: t => registerModal(t.dataset.epc),
+  'edit-asset': t => registerModal(t.dataset.epc, (S.assetCache || []).find(a => a.epc === t.dataset.epc)),
+  'open-history': t => { S.selEpc = t.dataset.epc; S.selName = t.dataset.name; if (S.page === 'history') load(); else go('history'); },
+  'add-location': () => openModal({ title: 'Add location', fields: [
+    { name: 'name', label: 'Name', required: true },
+    { name: 'type', label: 'Type', type: 'select', value: 'WAREHOUSE', options: [{ v: 'WAREHOUSE', l: 'Warehouse' }, { v: 'GATE', l: 'Gate' }, { v: 'DEPT', l: 'Department' }] }],
+    onSubmit: async v => { await post('/api/locations', v); S.locations = []; toast('Location added'); await load(); } }),
+  'new-order': () => openModal({ title: 'Create order', fields: [
+    { name: 'code', label: 'Order code', required: true },
+    { name: 'type', label: 'Type', type: 'select', value: 'OUT', options: [{ v: 'OUT', l: 'Outbound' }, { v: 'IN', l: 'Inbound' }] },
+    { name: 'reference', label: 'Reference' }],
+    onSubmit: async v => { const r = await post('/api/orders', v); S.selOrder = r.id; toast('Order created'); await load(); } }),
+  'sel-order': t => { S.selOrder = +t.dataset.id; load(); },
+  'add-cat': () => openModal({ title: 'Add by category', fields: [
+    { name: 'category', label: 'Category', required: true, list: categories() },
+    { name: 'qty', label: 'Quantity', type: 'number', value: 1, min: 1, required: true }],
+    onSubmit: async v => { await post(`/api/orders/${S.selOrder}/lines`, { kind: 'CATEGORY', category: v.category, qty: +v.qty }); await load(); } }),
+  'add-epc': () => {
+    const used = new Set((S.orderEv ? S.orderEv.lines : []).filter(l => l.kind === 'EPC').map(l => l.epc));
+    const opts = (S.assetCache || []).filter(a => !used.has(a.epc)).map(a => ({ v: a.epc, l: `${a.name} (${a.epc})` }));
+    if (!opts.length) return toast('No registered assets left to add. Register tags in Assets first.', true);
+    openModal({ title: 'Add by EPC', fields: [{ name: 'epc', label: 'Registered asset', type: 'select', options: opts, required: true }],
+      onSubmit: async v => { await post(`/api/orders/${S.selOrder}/lines`, { kind: 'EPC', epc: v.epc }); await load(); } });
+  },
+  'del-line': async t => { try { await api('/api/lines/' + t.dataset.id, { method: 'DELETE' }); await load(); } catch (e) { toast(e.message, true); } },
+  'gate-start': async () => {
+    beep(660, 60);
+    try {
+      const r = await post('/api/gate/start', { order_id: S.gateSel, ...creds() });
+      toast(r.reader === 'started' ? (r.order ? 'Scanning. Reader started' : 'Reader started (no order selected)') : 'Order active. Reader not started (no IP in Settings)'); await load();
+    } catch (e) { toast(e.message, true); }
+  },
+  'gate-stop': async () => { try { const r = await post('/api/gate/stop', creds()); toast(r.reader === 'stopped' ? 'Reader stopped' : 'No reader IP in Settings'); } catch (e) { toast(e.message, true); } },
+  'live-reset': async () => { await post('/api/live/reset'); },
+  'gate-detach': async () => { try { await post('/api/gate/clear'); toast('Order detached'); await load(); } catch (e) { toast(e.message, true); } },
+  'gate-commit': async () => {
+    if (!S.gateSel) return;
+    const ev = await api('/api/orders/' + S.gateSel), n = ev.summary.exception_count;
+    if (!confirm(`Commit ${ev.order.code}? ${n ? n + ' exception(s) will be recorded as a discrepancy.' : 'No exceptions.'} This locks the order.`)) return;
+    try {
+      const r = await post(`/api/orders/${S.gateSel}/commit`, { reference: $('#gRef').value, reason: $('#gReason').value });
+      toast(`Order ${r.order.code}: ${r.order.status.toLowerCase()}`); $('#gRef').value = ''; $('#gReason').value = ''; S.gateSel = null; await load();
+    } catch (e) { toast(e.message, true); }
+  }
+};
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-act]');
+  if (a && actions[a.dataset.act]) { e.preventDefault(); actions[a.dataset.act](a, e); return; }
+  const g = e.target.closest('[data-go]');
+  if (g) { e.preventDefault(); go(g.dataset.go); }
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 'gSel') { S.gateSel = +e.target.value || null; load(); }
+  else if (e.target.id === 'lReader') post('/api/reader-location', { location_id: e.target.value || null }).then(() => toast('Reader location updated')).catch(err => toast(err.message, true));
+  else if (e.target.id === 'hLoc') { S.hf.loc = e.target.value; load(); }
+  else if (e.target.id === 'hRes') { S.hf.res = e.target.value; load(); }
+});
+let qt;
+document.addEventListener('input', e => {
+  if (e.target.id === 'aQ') { clearTimeout(qt); qt = setTimeout(load, 250); }
+  else if (e.target.id === 'hQ') { S.hf.q = e.target.value; clearTimeout(qt); qt = setTimeout(load, 250); }
+});
+
+/* ------------------------------------------------------------ live */
+if (typeof io !== 'undefined') {
+  const sock = io();
+  sock.on('tag_events', d => {
+    seen();
+    if (localStorage.getItem('sound') !== 'off' && d.events.some(e => alertOf(e))) beep(d.events.some(e => alertOf(e).cls === 'err') ? 330 : 520, 260);
+    refresh();
+  });
+  sock.on('order_update', refresh); sock.on('state_update', d => { S.state = d; refresh(); });
+  sock.on('assets_changed', refresh);
+  sock.on('reader_heartbeat', d => { if (S.state) { S.state.reader = { ...(S.state.reader || {}), seconds_ago: d.seconds_ago }; setReaderChip(); } });
+  sock.on('live_update', d => { S.live = d; if (S.page === 'gate') renderLive(); });
+  sock.on('reader_heartbeat_event', seen); sock.on('gpi_event', seen);
+} else {
+  setInterval(refresh, 3000);
+}
+window.addEventListener('hashchange', () => { const p = location.hash.slice(1); if (p !== S.page) go(p); });
+go(location.hash.slice(1) || 'dashboard');
+</script>
+</body>
+</html>

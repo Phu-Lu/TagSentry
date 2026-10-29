@@ -1,0 +1,81 @@
+epc,name,category,color,size,home_location
+E28011B0A5050076BC893269,Dell XPS 15 Laptop (CEO),IT Equipment,,,Executive Office
+E28011B0A5050076BC8958A8,"MacBook Pro 16"" M2 (Design Lead)",IT Equipment,,,Creative Studio
+E38019600116532265505867,Lenovo ThinkPad T14 (Sales Rep 1),IT Equipment,,,Sales Dept
+E28011B0A5050076BC895888,Lenovo ThinkPad T14 (Sales Rep 2),IT Equipment,,,Sales Dept
+E28011B0A5050076BC8932A8,Lenovo ThinkPad T14 (Sales Rep 3),IT Equipment,,,Sales Dept
+E28068980000A00103527080,HP ProBook 450 G8 (HR Specialist),IT Equipment,,,HR Dept
+E28011B0A5050076BC8932B8,Dell OptiPlex 7090 PC (Finance 1),IT Equipment,,,Finance Dept
+E28011B0A5050076BC8932F8,Dell OptiPlex 7090 PC (Finance 2),IT Equipment,,,Finance Dept
+E28011B0A5050076BC893208,HP Z2 Workstation (Graphic Designer),IT Equipment,,,Creative Studio
+E28068980000800103527074,"iMac 24"" M1 (Video Editor)",IT Equipment,,,Creative Studio
+E2801191A5030062994D307B,Dell Latitude 5420 (IT Support),IT Equipment,,,IT Office
+E28011B0A5050076BC893289,Asus ExpertBook B9 (Legal Counsel),IT Equipment,,,Legal Dept
+E28011B0A5050076BC88ECE9,Dell UltraSharp U2723QE 4K Monitor,Displays & Monitors,,,Creative Studio
+E28011B0A5050076BC893279,Dell UltraSharp U2723QE 4K Monitor,Displays & Monitors,,,Creative Studio
+E28011B0A5050076BC893238,"LG 34"" Ultrawide Monitor",Displays & Monitors,,,Executive Office
+E28068980000800103527069,"Dell 24"" Professional Monitor P2419H",Displays & Monitors,,,Finance Dept
+E28068980000A00103527068,"Dell 24"" Professional Monitor P2419H",Displays & Monitors,,,Finance Dept
+E2801191A5030062994D30EB,"Dell 24"" Professional Monitor P2419H",Displays & Monitors,,,Sales Dept
+E28068980000A00103527067,"Dell 24"" Professional Monitor P2419H",Displays & Monitors,,,Sales Dept
+E28011B0A5050076BC8932A9,"Samsung 55"" Smart Interactive TV",Displays & Monitors,,,Meeting Room A
+E28068980000800103527066,Dell PowerEdge R750 Server,Server & Network,,,Server Room
+E28068980000800103527081,Synology DiskStation NAS 12-Bay,Server & Network,,,Server Room
+E2801191A5030062994D306B,Cisco Catalyst 9300 48-Port Switch,Server & Network,,,Server Room
+E28011B0A5050076BC895848,Fortinet FortiGate 100F Firewall,Server & Network,,,Server Room
+E2806898000080010352707D,APC Smart-UPS RT 10000VA,Server & Network,,,Server Room
+E28011B0A5050076BC895898,Ubiquiti UniFi WiFi 6 Access Point (x6),Server & Network,,,Main Office Area
+E28011B0A5050076BC893249,Grandstream IP PBX Phone System,Server & Network,,,Server Room
+E28068980000800103527078,Ricoh MP 6055 Multifunction Copier/Printer,Office Electronics,,,Print Corner
+E28011B0A5050076BC895828,HP LaserJet Enterprise M507dn Printer,Office Electronics,,,Finance Dept
+E28068980000A00103527079,Canon ImageCLASS Color Laser Printer,Office Electronics,,,Marketing Dept
+E28068980000A0010352707A,Fujitsu ScanSnap iX1600 Document Scanner,Office Electronics,,,HR Dept
+E2801191A5030062994D30DB,Fellowes Powershred 99Ci Paper Shredder,Office Electronics,,,Print Corner
+E28011B0A5050076BC8958C8,Epson EB-2250U High Brightness Projector,Office Electronics,,,Main Auditorium
+E28011B0A5050076BC895868,Logitech Rally Plus Video Conference System,Office Electronics,,,Boardroom
+E28011B0A5050076BC893209,Poly Studio P15 Personal Video Bar,Office Electronics,,,Executive Office
+E28068980000A00103527075,Herman Miller Aeron Ergonomic Chair (CEO),Furniture & Seating,,,Executive Office
+E28011B0A5050076BC893259,Steelcase Gesture Ergonomic Chair (VP),Furniture & Seating,,,Executive Office
+E2801191A5030062994D305B,Merryfair Wau Ergonomic Mesh Chair,Furniture & Seating,,,Sales Dept
+E28011B0A5050076BC895858,Merryfair Wau Ergonomic Mesh Chair,Furniture & Seating,,,Sales Dept
+E28011B0A5050076BC893219,Merryfair Wau Ergonomic Mesh Chair,Furniture & Seating,,,Finance Dept
+E2801191A5030062994D304B,Merryfair Wau Ergonomic Mesh Chair,Furniture & Seating,,,HR Dept
+E28011B0A5050076BC88ECF9,Executive Leather Lounge Sofa Set,Furniture & Seating,,,Reception Lounge
+E28068980000800103527065,Conference Room Chairs (Set of 12),Furniture & Seating,,,Boardroom
+E28068980000A00103527076,Pantry High Stools (Set of 6),Furniture & Seating,,,Office Pantry
+E2801191A5030062994D309B,Executive Walnut Wood Desk (CEO),Furniture & Workstations,,,Executive Office
+E2801191A5030062994D308B,Motorized Standing Desk 180cm,Furniture & Workstations,,,Creative Studio
+E2801191A5030062994D30BB,Motorized Standing Desk 180cm,Furniture & Workstations,,,Creative Studio
+E2801191A5030062994D30AB,6-Person Open Plan Workstation Cluster,Furniture & Workstations,,,Sales Dept
+E28011B0A5050076BC895838,6-Person Open Plan Workstation Cluster,Furniture & Workstations,,,Finance Dept
+E2801191A5030062994D30FB,12-Person Solid Wood Conference Table,Furniture & Workstations,,,Boardroom
+E2806898000080010352707E,Fireproof Steel Document Cabinet (4-Drawer),Storage & Cabinets,,,Finance Dept
+E2806898000080010352707B,Fireproof Steel Document Cabinet (4-Drawer),Storage & Cabinets,,,HR Dept
+E28011B0A5050076BC8932B9,Modular Wall Storage Units,Storage & Cabinets,,,Archive Room
+E28068980000A00103527073,ZKTeco Facial Recognition Access Controller (4 Units),Security & Access,,,Office Entrances
+E28068980000800103527082,Hikvision 4K IP CCTV Camera Network (24 Cameras),Security & Access,,,All Office Floors
+E28068980000800103527084,Bosch Fire Alarm System Panel,Security & Safety,,,Building Core
+E28068980000800103527072,First Aid Kit Station & Defibrillator (AED),Security & Safety,,,Main Corridor
+E28011B0A5050076BC893248,DeLonghi Magnifica S Automatic Coffee Machine,Pantry & Appliances,,,Office Pantry
+E28068980000A0010352707F,Hitachi French Door Refrigerator 540L,Pantry & Appliances,,,Office Pantry
+E28068980000A0010352707C,Panasonic Inverter Microwave Oven,Pantry & Appliances,,,Office Pantry
+E28011B0A5050076BC893298,Toshiba Hot & Cold Water Dispenser,Pantry & Appliances,,,Office Pantry
+E28011B0A5050076BC893239,Toshiba Hot & Cold Water Dispenser,Pantry & Appliances,,,Sales Lounge
+E28011B0A5050076BC893229,Dyson Purifier Cool Autoreact Air Purifier,Pantry & Appliances,,,Executive Office
+E28011B0A5050076BC893218,Dyson Purifier Cool Autoreact Air Purifier,Pantry & Appliances,,,Boardroom
+E28068980000A00103527085,Daikin VRV V Central Air Conditioning System,HVAC & Facilities,,,Entire Floor
+E28011B0A5050076BC8958B8,Dyson Lightcycle Morph Desk Lamp,Facilities Equipment,,,Executive Office
+E28068980000A00103527083,Uninterruptible Power Supply (UPS) 5kVA,HVAC & Facilities,,,AV Rack / Boardroom
+E28068980000800103527077,Sony A7 IV Camera Kit + Lenses (Marketing),Specialized Equipment,,,Creative Studio
+E28011B0A5050076BC8932C9,DJI Ronin RS3 Pro Gimbal,Specialized Equipment,,,Creative Studio
+E28011B0A5050076BC893268,Acoustic Phone Booth (Single Person),Office Pods,,,Open Workspace
+E28011B0A5050076BC8932E8,Acoustic Meeting Pod (4 Persons),Office Pods,,,Open Workspace
+E28011B0A5050076BC893258,"Digital Signage Kiosk 55"" Touchscreen",Displays & Monitors,,,Reception Area
+E28011B0A5050076BC8932C8,SP7208-SV00004ZCWW,Office Electronics,,,Storage Room
+E28011B0A5050076BC8932D8,DS4678-XD40007VZAP,Office Electronics,,,Storage Room
+E28011B0A5050076BC895818,DS4678-XD40007VZAP,Office Electronics,,,Storage Room
+E28011B0A5050076BC895808,ET45CB-101K2B0-A6,Office Electronics,,,Storage Room
+E28011B0A5050076BC893299,DS3608-XR60003VZWW,Office Electronics,,,Storage Room
+E2801191A5030062994D30CB,ET40AB-001C1BM-A6,Office Electronics,,,Storage Room
+30396061C0675C80001811D6,DS1001-SR002Y4ZZS,Office Electronics,,,Storage Room
+50485553455F4C4150544F50,FS20-SR10Z3-3P00W,Office Electronics,,,Storage Room
